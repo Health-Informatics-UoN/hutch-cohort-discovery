@@ -1,4 +1,5 @@
 using Hutch.Relay.Data;
+using Hutch.Relay.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,11 @@ builder.Services.AddIdentityCore<IdentityUser>().AddEntityFrameworkStores<Applic
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// App specific
+builder.Services
+  .AddTransient<RelayTaskService>()
+  .AddTransient<RelaySubTaskService>();
 
 var app = builder.Build();
 

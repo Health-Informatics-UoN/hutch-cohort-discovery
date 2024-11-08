@@ -1,0 +1,28 @@
+{
+  "folders": [
+    {
+      "name": "ROOT",
+      "path": "../"
+    },
+    {
+      "name": "Relay",
+      "path": "../app/Hutch.Relay"
+    },
+    {
+      "name": "Resolve",
+      "path": "../app/resolve"
+    },
+    {
+      "name": "RquestBridge",
+      "path": "../app/RquestBridge"
+    },
+    {
+      "name": "FiveSafes.Net",
+      "path": "../lib/react-client-app"
+    },
+    {
+      "name": "RACKit",
+      "path": "../app/Hutch.RACKit"
+    },
+  ],
+}
