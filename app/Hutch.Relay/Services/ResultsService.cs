@@ -14,7 +14,8 @@ public class ResultsService(
   IOptions<ApiClientOptions> options,
   ITaskApiClient upstreamTasks,
   IRelayTaskService relayTaskService,
-  IObfuscationService obfuscationService)
+  IObfuscationService obfuscation
+  )
 {
   private ApiClientOptions options = options.Value;
 
@@ -36,16 +37,30 @@ public class ResultsService(
       }
       catch (RackitApiClientException exception)
       {
-        if (exception.UpstreamApiResponse is { StatusCode: HttpStatusCode.InternalServerError })
+        if (exception.UpstreamApiResponse == null)
+        {
+          logger.LogError(
+            "Task submission failed with unidentified exception. UpstreamApiResponse is null.");
+          break;
+        }
+        
+        HttpStatusCode status = exception.UpstreamApiResponse.StatusCode;
+
+        if (status ==  HttpStatusCode.InternalServerError)
         {
           retryCount++;
           logger.LogError(
-            "Task submission failed with 500 Internal Server Error. Retrying in {delayInSeconds} seconds... ({retryCount}/{maxRetries})",
-            delayInSeconds,
-            retryCount, maxRetryCount);
-
+            $"Task submission failed with {(int)status} {status} Error. Retrying in {delayInSeconds} seconds... ({retryCount}/{maxRetryCount})");
           await Task.Delay(delayInSeconds * 1000);
         }
+        else
+        {
+          logger.LogError(
+            $"Task submission failed with {(int)status} {status} Error.");
+          break;
+        }
+      
+          
       }
     }
   }
@@ -64,6 +79,9 @@ public class ResultsService(
       }
     }
 
+    // Apply Obfuscation functions if configured
+    var obfuscatedAggregateCount = obfuscation.Obfuscate(aggregateCount);
+    
     return new JobResult()
     {
       Uuid = relayTaskId,
@@ -71,7 +89,7 @@ public class ResultsService(
                      throw new ArgumentException(nameof(options.CollectionId)),
       Results = new QueryResult()
       {
-        Count = aggregateCount,
+        Count = obfuscatedAggregateCount,
       }
     };
   }
@@ -87,8 +105,6 @@ public class ResultsService(
       {
         // Aggregate SubTask count
         var finalResult = await AggregateResults(task.Id);
-        // Obfuscate the result
-        finalResult.Results.Count = obfuscationService.Obfuscate(finalResult.Results.Count);
         // Post to TaskApi 
         await SubmitResults(task, finalResult);
         //Set task as complete

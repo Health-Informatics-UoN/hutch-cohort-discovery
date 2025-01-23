@@ -1,55 +1,58 @@
-using Hutch.Relay.Config;
 using Hutch.Relay.Services.Contracts;
+using Hutch.Relay.Config;
 using Microsoft.Extensions.Options;
 
 namespace Hutch.Relay.Services;
 
-public class ObfuscationService: IObfuscationService
+public class ObfuscationService(IOptions<ObfuscationOptions> obfuscationOptions): IObfuscationService
 {
-  private readonly ObfuscationOptions _obfuscationOptions;
-
-  public ObfuscationService(IOptions<ObfuscationOptions> obfuscationOptions)
-  {
-    _obfuscationOptions = obfuscationOptions.Value;
-  }
-
   /// <summary>
-  /// Applies low number suppression to the value. If the value is greater than the threshold, it will remain the same. Otherwise, it will be set to 0.
+  /// Applies low number suppression to the value. If value is greater than the threshold, it will remain the same. Otherwise, it will be set to 0.
   /// </summary>
   /// <param name="value">The value to apply suppression to.</param>
+  /// <param name="threshold">The threshold value of suppression.</param>
   /// <returns>The suppressed value.</returns>
-  public int LowNumberSuppression(int value)
+  private int LowNumberSuppression(int value, int threshold)
   {
-    return value > _obfuscationOptions.LowNumberSuppressionThreshold ? value : 0;
+    return value > threshold ? value : 0;
   }
 
   /// <summary>
-  /// Applies rounding to the value. The value will be rounded to the nearest specified number.
+  /// Applies rounding to the value. The value will be rounded to nearest. For example, if nearest = 10, 95 would be rounded to 100, as would 104 and any integer in between.
   /// </summary>
   /// <param name="value">The value to be rounded.</param>
+  /// <param name="nearest">The number to round to.</param>
   /// <returns>The rounded value.</returns>
-  public int Rounding(int value)
+  private int Rounding(int value, int nearest)
   {
-    return _obfuscationOptions.RoundingTarget * (int)Math.Round((float)value / _obfuscationOptions.RoundingTarget);
+    return nearest * (int)Math.Round((float)value / nearest);
   }
 
   /// <summary>
-  /// Applies obfuscation functions to the value based on the obfuscation options.
+  /// Applies obfuscation functions to the value. Applies low number suppression first, then rounding. Nearest and threshold are optional; Without them, the function will check the obfuscation options variables, and use those. If they are not present, the obfuscation will not take place for the missing parameter. 
   /// </summary>
-  /// <param name="value">The value to be obfuscated.</param>
-  /// <returns>The obfuscated value.</returns>
+  /// <param name="value">Value ot be obfuscated.</param>
+  /// <returns>Returns the obfuscated value.</returns>
   public int Obfuscate(int value)
   {
-    if (_obfuscationOptions.LowNumberSuppressionThreshold > 0)
+    
+    var result = value;
+    if (obfuscationOptions.Value.LowNumberSuppressionThreshold > 0)
     {
-      value = LowNumberSuppression(value);
+      result = LowNumberSuppression(result, obfuscationOptions.Value.LowNumberSuppressionThreshold);
     }
 
-    if (_obfuscationOptions.RoundingTarget > 0)
+    if (obfuscationOptions.Value.RoundingTarget > 0)
     {
-      value = Rounding(value);
+      result = Rounding(result, obfuscationOptions.Value.RoundingTarget);
     }
 
-    return value;
+    return result;
   }
+}
+  
+public class ObfuscationOptions
+{
+  public int LowNumberSuppressionThreshold { get; set; }
+  public int RoundingTarget { get; set; }
 }

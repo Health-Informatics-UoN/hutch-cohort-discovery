@@ -197,7 +197,7 @@ public class RelayTaskService(ApplicationDbContext db) : IRelayTaskService
                    .Include(relaySubTask => relaySubTask.RelayTask)
                    .SingleOrDefaultAsync(t => t.Id == id)
                  ?? throw new KeyNotFoundException();
-
+    
     return new RelaySubTaskModel()
     {
       Id = entity.Id,
